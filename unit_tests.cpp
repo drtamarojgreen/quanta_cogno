@@ -1,6 +1,7 @@
 #include "testing_framework.h"
 #include "json_logic.h"
 #include "api_logic.h"
+#include "api_handler.h"
 #include <fstream>
 #include <cstdio> // For remove()
 
@@ -89,4 +90,118 @@ TEST_CASE(ApiLogic, CanSaveAndLoadFile) {
     JsonValue loaded = load_from_file(filename);
     ASSERT_TRUE(are_equal(original.object_value["test"], loaded.object_value["test"]));
     std::remove(filename.c_str());
+}
+
+// Tests for mandatory search parameters feature
+TEST_CASE(ApiHandler, RejectsGetResearchAssociationsWithNoParameters) {
+    JsonValue request = JsonValue::makeObject();
+    JsonValue empty_params = JsonValue::makeObject();
+    request.object_value["parameters"] = empty_params;
+    
+    JsonValue response = process_api_request("getResearchAssociations", request);
+    
+    ASSERT_EQUAL(response.object_value["success"].bool_value, false);
+    ASSERT_TRUE(response.object_value.count("error") > 0);
+    ASSERT_TRUE(response.object_value["error"].object_value["message"].string_value.find("requires at least one search parameter") != std::string::npos);
+}
+
+TEST_CASE(ApiHandler, RejectsGetDrugGeneInteractionsWithNoParameters) {
+    JsonValue request = JsonValue::makeObject();
+    JsonValue empty_params = JsonValue::makeObject();
+    request.object_value["parameters"] = empty_params;
+    
+    JsonValue response = process_api_request("getDrugGeneInteractions", request);
+    
+    ASSERT_EQUAL(response.object_value["success"].bool_value, false);
+    ASSERT_TRUE(response.object_value.count("error") > 0);
+    ASSERT_TRUE(response.object_value["error"].object_value["message"].string_value.find("requires at least one search parameter") != std::string::npos);
+}
+
+TEST_CASE(ApiHandler, RejectsGetPolygeneticRiskScoresWithNoParameters) {
+    JsonValue request = JsonValue::makeObject();
+    JsonValue empty_params = JsonValue::makeObject();
+    request.object_value["parameters"] = empty_params;
+    
+    JsonValue response = process_api_request("getPolygeneticRiskScores", request);
+    
+    ASSERT_EQUAL(response.object_value["success"].bool_value, false);
+    ASSERT_TRUE(response.object_value.count("error") > 0);
+    ASSERT_TRUE(response.object_value["error"].object_value["message"].string_value.find("requires at least one search parameter") != std::string::npos);
+}
+
+TEST_CASE(ApiHandler, AcceptsBroadSearchEndpointWithValidParameter) {
+    JsonValue request = JsonValue::makeObject();
+    JsonValue params = JsonValue::makeObject();
+    params.object_value["gene_ids"] = JsonValue::makeString("COMT");
+    request.object_value["parameters"] = params;
+    
+    JsonValue response = process_api_request("getResearchAssociations", request);
+    
+    ASSERT_EQUAL(response.object_value["success"].bool_value, true);
+    ASSERT_TRUE(response.object_value["message"].string_value.find("Request processed successfully") != std::string::npos);
+}
+
+TEST_CASE(ApiHandler, DoesNotAffectUnrelatedEndpoints) {
+    JsonValue request = JsonValue::makeObject();
+    JsonValue params = JsonValue::makeObject();
+    params.object_value["gene"] = JsonValue::makeString("COMT");
+    request.object_value["parameters"] = params;
+    
+    JsonValue response = process_api_request("getGene", request);
+    
+    ASSERT_EQUAL(response.object_value["success"].bool_value, true);
+    ASSERT_TRUE(response.object_value["message"].string_value.find("Request processed successfully") != std::string::npos);
+}
+
+TEST_CASE(ApiHandler, RejectsRequestWithMissingParametersObject) {
+    JsonValue request = JsonValue::makeObject();
+    // No parameters object at all
+    
+    JsonValue response = process_api_request("getResearchAssociations", request);
+    
+    ASSERT_EQUAL(response.object_value["success"].bool_value, false);
+    ASSERT_TRUE(response.object_value.count("error") > 0);
+    ASSERT_TRUE(response.object_value["error"].object_value["message"].string_value.find("Missing parameters object") != std::string::npos);
+}
+
+TEST_CASE(ApiHandler, RejectsRequestWithOnlyNullParameters) {
+    JsonValue request = JsonValue::makeObject();
+    JsonValue params = JsonValue::makeObject();
+    params.object_value["gene_ids"] = JsonValue::makeNull();
+    params.object_value["condition"] = JsonValue::makeNull();
+    request.object_value["parameters"] = params;
+    
+    JsonValue response = process_api_request("getDrugGeneInteractions", request);
+    
+    ASSERT_EQUAL(response.object_value["success"].bool_value, false);
+    ASSERT_TRUE(response.object_value.count("error") > 0);
+    ASSERT_TRUE(response.object_value["error"].object_value["message"].string_value.find("requires at least one non-empty search parameter") != std::string::npos);
+}
+
+TEST_CASE(ApiHandler, RejectsRequestWithOnlyEmptyStringParameters) {
+    JsonValue request = JsonValue::makeObject();
+    JsonValue params = JsonValue::makeObject();
+    params.object_value["condition"] = JsonValue::makeString("");
+    request.object_value["parameters"] = params;
+    
+    JsonValue response = process_api_request("getPolygeneticRiskScores", request);
+    
+    ASSERT_EQUAL(response.object_value["success"].bool_value, false);
+    ASSERT_TRUE(response.object_value.count("error") > 0);
+    ASSERT_TRUE(response.object_value["error"].object_value["message"].string_value.find("requires at least one non-empty search parameter") != std::string::npos);
+}
+
+TEST_CASE(ApiHandler, AcceptsRequestWithValidArrayParameter) {
+    JsonValue request = JsonValue::makeObject();
+    JsonValue params = JsonValue::makeObject();
+    JsonValue gene_array = JsonValue::makeArray();
+    gene_array.array_value.push_back(JsonValue::makeString("COMT"));
+    gene_array.array_value.push_back(JsonValue::makeString("HTR2A"));
+    params.object_value["gene_ids"] = gene_array;
+    request.object_value["parameters"] = params;
+    
+    JsonValue response = process_api_request("getDrugGeneInteractions", request);
+    
+    ASSERT_EQUAL(response.object_value["success"].bool_value, true);
+    ASSERT_TRUE(response.object_value["message"].string_value.find("Request processed successfully") != std::string::npos);
 }

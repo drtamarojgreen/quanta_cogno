@@ -1,6 +1,7 @@
 #include "json_logic.h"
 #include <cctype>
 #include <sstream>
+#include <cstddef>
 
 // Constructors and factory methods
 JsonValue::JsonValue() : type(NIL), number_value(0), bool_value(false) {}
@@ -39,7 +40,7 @@ std::string JsonValue::serialize() const {
             for(auto& kv: object_value) {
                 if(!first) os << ',';
                 first = false;
-                os << '"' << kv.first << "":" << kv.second.serialize();
+                os << '"' << kv.first << "\":" << kv.second.serialize();
             }
             os << '}';
             break;

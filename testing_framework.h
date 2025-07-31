@@ -61,21 +61,21 @@ public:
             std::cout << " SUITE: " << suite.first << "\n";
             std::cout << "===========================================\n";
             for (const auto& test : suite.second) {
-                std::cout << "[RUN     ] " << test.first << std::flush;
+                std::cout << "[RUN     ] " << test.name << std::flush;
                 TestStats test_stats;
                 try {
-                    test.second(test_stats);
+                    test.func(test_stats);
                     if (test_stats.failed == 0) {
-                        std::cout << "\r[   OK   ] " << test.first << " (" << test_stats.passed << " assertions)" << std::endl;
+                        std::cout << "\r[   OK   ] " << test.name << " (" << test_stats.passed << " assertions)" << std::endl;
                     } else {
-                         std::cout << "\r[ FAILED ] " << test.first << " (" << test_stats.passed << " passed, " << test_stats.failed << " failed)" << std::endl;
+                         std::cout << "\r[ FAILED ] " << test.name << " (" << test_stats.passed << " passed, " << test_stats.failed << " failed)" << std::endl;
                     }
                 } catch (const std::exception& e) {
                     test_stats.failed++;
-                    std::cerr << "\r[ FAILED ] " << test.first << " - Unhandled exception: " << e.what() << std::endl;
+                    std::cerr << "\r[ FAILED ] " << test.name << " - Unhandled exception: " << e.what() << std::endl;
                 } catch (...) {
                     test_stats.failed++;
-                    std::cerr << "\r[ FAILED ] " << test.first << " - Unknown exception" << std::endl;
+                    std::cerr << "\r[ FAILED ] " << test.name << " - Unknown exception" << std::endl;
                 }
                 total_stats.passed += test_stats.passed;
                 total_stats.failed += test_stats.failed;

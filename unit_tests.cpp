@@ -1,6 +1,7 @@
 #include "testing_framework.h"
 #include "json_logic.h"
 #include "api_logic.h"
+#include "api_handler.h"
 #include <fstream>
 #include <cstdio> // For remove()
 
@@ -89,4 +90,53 @@ TEST_CASE(ApiLogic, CanSaveAndLoadFile) {
     JsonValue loaded = load_from_file(filename);
     ASSERT_TRUE(are_equal(original.object_value["test"], loaded.object_value["test"]));
     std::remove(filename.c_str());
+}
+
+TEST_CASE(ApiHandlerLogic, BroadSearchParameterValidation) {
+    // Test case 1: getResearchAssociations with no parameters (should fail)
+    JsonValue request1 = JsonValue::makeObject();
+    request1.object_value["name"] = JsonValue::makeString("getResearchAssociations");
+    request1.object_value["parameters"] = JsonValue::makeObject();
+
+    JsonValue response1 = process_api_request(request1);
+    std::string expected_error = "{\"error\":{\"code\":400,\"message\":\"At least one search parameter is required for this endpoint.\"}}";
+    ASSERT_EQUAL(response1.serialize(), expected_error);
+
+    // Test case 2: getResearchAssociations with one parameter (should succeed)
+    JsonValue request2 = JsonValue::makeObject();
+    request2.object_value["name"] = JsonValue::makeString("getResearchAssociations");
+    JsonValue params2 = JsonValue::makeObject();
+    params2.object_value["gene_ids"] = JsonValue::makeArray();
+    request2.object_value["parameters"] = params2;
+
+    JsonValue response2 = process_api_request(request2);
+    std::string expected_success = "{\"success\":true}";
+    ASSERT_EQUAL(response2.serialize(), expected_success);
+
+    // Test case 3: getDrugGeneInteractions with no parameters (should fail)
+    JsonValue request3 = JsonValue::makeObject();
+    request3.object_value["name"] = JsonValue::makeString("getDrugGeneInteractions");
+    request3.object_value["parameters"] = JsonValue::makeObject();
+
+    JsonValue response3 = process_api_request(request3);
+    ASSERT_EQUAL(response3.serialize(), expected_error);
+
+    // Test case 4: getPolygeneticRiskScores with no parameters (should fail)
+    JsonValue request4 = JsonValue::makeObject();
+    request4.object_value["name"] = JsonValue::makeString("getPolygeneticRiskScores");
+    request4.object_value["parameters"] = JsonValue::makeObject();
+
+    JsonValue response4 = process_api_request(request4);
+    ASSERT_EQUAL(response4.serialize(), expected_error);
+
+    // Test case 5: A different endpoint that isn't a broad search (should succeed)
+    JsonValue request5 = JsonValue::makeObject();
+    request5.object_value["name"] = JsonValue::makeString("getGene");
+    JsonValue params5 = JsonValue::makeObject();
+    // This endpoint has required params, but our logic doesn't check that,
+    // it just checks that broad search ones are not empty.
+    // An empty params object should be fine for this non-broad-search endpoint.
+    request5.object_value["parameters"] = params5;
+    JsonValue response5 = process_api_request(request5);
+    ASSERT_EQUAL(response5.serialize(), expected_success);
 }

@@ -39,7 +39,7 @@ std::string JsonValue::serialize() const {
             for(auto& kv: object_value) {
                 if(!first) os << ',';
                 first = false;
-                os << '"' << kv.first << "":" << kv.second.serialize();
+                os << '"' << kv.first << "\":" << kv.second.serialize();
             }
             os << '}';
             break;

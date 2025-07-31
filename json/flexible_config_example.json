@@ -1,0 +1,584 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Flexible Mental Health Genomics Configuration",
+  "description": "Example configuration demonstrating flexible JSON architecture for different data scenarios",
+  
+  "data_sources": {
+    "ncbi_api": {
+      "type": "rest_api",
+      "base_url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+      "authentication": {
+        "type": "api_key",
+        "key_parameter": "api_key",
+        "token_source": "${ENV:NCBI_API_KEY}"
+      },
+      "rate_limiting": {
+        "requests_per_second": 3,
+        "burst_limit": 10
+      },
+      "retry_policy": {
+        "max_retries": 3,
+        "backoff_strategy": "exponential",
+        "retry_codes": [429, 500, 502, 503, 504]
+      }
+    },
+    
+    "local_genomics_db": {
+      "type": "sqlite",
+      "connection_string": "./data/genomics.db",
+      "connection_pool": {
+        "min_connections": 1,
+        "max_connections": 5,
+        "connection_timeout": 30
+      },
+      "query_timeout": 60
+    },
+    
+    "vcf_files": {
+      "type": "file_system",
+      "base_path": "./data/vcf",
+      "supported_formats": ["vcf", "vcf.gz", "bcf"],
+      "indexing": {
+        "auto_index": true,
+        "index_format": "tabix"
+      }
+    },
+    
+    "expression_data": {
+      "type": "file_system",
+      "base_path": "./data/expression",
+      "supported_formats": ["csv", "tsv", "h5", "mtx"],
+      "compression": ["gzip", "bzip2"]
+    },
+    
+    "pubmed_cache": {
+      "type": "cache",
+      "backend": "file_system",
+      "cache_path": "./cache/pubmed",
+      "ttl": 86400,
+      "max_size": "1GB"
+    }
+  },
+  
+  "parameter_templates": {
+    "gene_identifiers": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9-]*[0-9]$",
+            "description": "Gene symbol (e.g., COMT, HTR2A)"
+          },
+          {
+            "type": "string", 
+            "pattern": "^[0-9]+$",
+            "description": "Entrez Gene ID"
+          },
+          {
+            "type": "string",
+            "pattern": "^ENSG[0-9]{11}$",
+            "description": "Ensembl Gene ID"
+          },
+          {
+            "type": "string",
+            "pattern": "^chr[0-9XYM]+:[0-9]+-[0-9]+$",
+            "description": "Genomic coordinates"
+          }
+        ]
+      },
+      "aliases": ["gene", "geneId", "gene_ids", "symbols", "gene_list"],
+      "validation": {
+        "min_items": 1,
+        "max_items": 1000,
+        "unique_items": true
+      },
+      "transformation": {
+        "normalize_case": "upper",
+        "resolve_aliases": true,
+        "validate_existence": true
+      }
+    },
+    
+    "mental_health_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "depression", "major_depressive_disorder", "mdd",
+          "anxiety", "generalized_anxiety_disorder", "gad",
+          "bipolar_disorder", "bipolar_i", "bipolar_ii",
+          "schizophrenia", "schizoaffective_disorder",
+          "autism_spectrum_disorder", "asd", "autism",
+          "adhd", "attention_deficit_hyperactivity_disorder",
+          "ptsd", "post_traumatic_stress_disorder",
+          "ocd", "obsessive_compulsive_disorder",
+          "eating_disorders", "anorexia", "bulimia"
+        ]
+      },
+      "aliases": ["condition", "conditions", "disorder", "disorders"],
+      "transformation": {
+        "normalize": "lowercase",
+        "expand_abbreviations": true
+      }
+    },
+    
+    "confidence_levels": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "all"],
+      "default": "${CONFIG:default_confidence_level|medium}",
+      "aliases": ["confidence", "evidence_level", "quality"],
+      "mapping": {
+        "strong": "high",
+        "moderate": "medium",
+        "weak": "low",
+        "any": "all"
+      }
+    }
+  },
+  
+  "workflows": {
+    "comprehensive_mental_health_analysis": {
+      "description": "Complete analysis pipeline for mental health genomics research",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "condition": {"$ref": "#/parameter_templates/mental_health_conditions"},
+          "patient_variants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "variant_id": {"type": "string"},
+                "genotype": {"type": "string", "pattern": "^[0-9]/[0-9]$"},
+                "chromosome": {"type": "string"},
+                "position": {"type": "integer"},
+                "ref_allele": {"type": "string"},
+                "alt_allele": {"type": "string"}
+              }
+            }
+          },
+          "analysis_depth": {
+            "type": "string",
+            "enum": ["basic", "comprehensive", "research"],
+            "default": "comprehensive"
+          }
+        },
+        "required": ["condition"]
+      },
+      
+      "steps": [
+        {
+          "name": "gene_discovery",
+          "type": "parallel",
+          "condition": "${INPUT:analysis_depth} != 'basic'",
+          "operations": [
+            {
+              "name": "get_known_genes",
+              "endpoint": "getMentalHealthGenes",
+              "data_source": "ncbi_api",
+              "parameters": {
+                "condition": "${INPUT:condition}",
+                "confidence_level": "high",
+                "include_drug_targets": true
+              },
+              "output_key": "known_genes",
+              "cache": {
+                "enabled": true,
+                "ttl": 3600,
+                "key_template": "mental_health_genes_${INPUT:condition}_high"
+              }
+            },
+            {
+              "name": "literature_search",
+              "endpoint": "getResearchAssociations", 
+              "data_source": "pubmed_cache",
+              "parameters": {
+                "mental_health_terms": ["${INPUT:condition}"],
+                "publication_years": {
+                  "start_year": "${CALC:current_year - 3}",
+                  "end_year": "${CALC:current_year}"
+                },
+                "study_types": ["gwas", "meta_analysis", "clinical_trial"]
+              },
+              "output_key": "recent_literature",
+              "fallback": {
+                "data_source": "ncbi_api",
+                "timeout": 30
+              }
+            }
+          ]
+        },
+        
+        {
+          "name": "variant_analysis",
+          "type": "conditional",
+          "condition": "${EXISTS:INPUT.patient_variants} AND ${LENGTH:INPUT.patient_variants} > 0",
+          "operations": [
+            {
+              "name": "annotate_variants",
+              "type": "custom",
+              "processor": "vcf_annotator",
+              "data_source": "vcf_files",
+              "parameters": {
+                "variants": "${INPUT:patient_variants}",
+                "annotation_sources": ["clinvar", "dbsnp", "gnomad"],
+                "include_predictions": true
+              },
+              "output_key": "annotated_variants"
+            },
+            {
+              "name": "filter_relevant_variants",
+              "type": "filter",
+              "input": "annotated_variants",
+              "criteria": {
+                "clinical_significance": ["pathogenic", "likely_pathogenic", "drug_response"],
+                "gene_overlap": "${EXTRACT:known_genes.gene_id}"
+              },
+              "output_key": "relevant_variants"
+            }
+          ]
+        },
+        
+        {
+          "name": "pathway_analysis",
+          "type": "sequential",
+          "condition": "${LENGTH:known_genes} > 5",
+          "operations": [
+            {
+              "name": "enrichment_analysis",
+              "endpoint": "getPathwayAnalysis",
+              "data_source": "local_genomics_db",
+              "parameters": {
+                "gene_list": "${EXTRACT:known_genes.gene_id}",
+                "pathway_databases": ["kegg", "reactome", "go"],
+                "mental_health_focus": true,
+                "significance_threshold": 0.01,
+                "multiple_testing_correction": "fdr"
+              },
+              "output_key": "pathway_results"
+            },
+            {
+              "name": "network_analysis",
+              "endpoint": "getProteinInteractions",
+              "parameters": {
+                "gene_ids": "${EXTRACT:known_genes.gene_id}",
+                "confidence_score": 0.7,
+                "brain_specific": true,
+                "network_depth": 2
+              },
+              "output_key": "interaction_network"
+            }
+          ]
+        },
+        
+        {
+          "name": "pharmacogenomics",
+          "type": "conditional",
+          "condition": "${INPUT:analysis_depth} == 'comprehensive' OR ${INPUT:analysis_depth} == 'research'",
+          "operations": [
+            {
+              "name": "drug_interactions",
+              "endpoint": "getDrugGeneInteractions",
+              "parameters": {
+                "gene_ids": "${MERGE:known_genes.gene_id,EXTRACT:relevant_variants.gene_id}",
+                "drug_classes": ["antidepressants", "antipsychotics", "mood_stabilizers"],
+                "evidence_level": "moderate",
+                "include_guidelines": true
+              },
+              "output_key": "drug_interactions"
+            },
+            {
+              "name": "polypharmacy_check",
+              "endpoint": "getPolypharmacyAdvisory",
+              "condition": "${EXISTS:relevant_variants}",
+              "parameters": {
+                "patient_variants": "${INPUT:patient_variants}",
+                "drug_list": "${EXTRACT:drug_interactions.drug_name}"
+              },
+              "output_key": "polypharmacy_warnings"
+            }
+          ]
+        },
+        
+        {
+          "name": "report_generation",
+          "type": "sequential",
+          "operations": [
+            {
+              "name": "compile_results",
+              "type": "merge",
+              "inputs": [
+                "known_genes", 
+                "recent_literature", 
+                "relevant_variants", 
+                "pathway_results", 
+                "interaction_network",
+                "drug_interactions",
+                "polypharmacy_warnings"
+              ],
+              "merge_strategy": "structured_report",
+              "output_key": "comprehensive_report"
+            },
+            {
+              "name": "generate_visualizations",
+              "type": "custom",
+              "processor": "visualization_generator",
+              "parameters": {
+                "network_data": "${REF:interaction_network}",
+                "pathway_data": "${REF:pathway_results}",
+                "output_formats": ["svg", "json"]
+              },
+              "output_key": "visualizations"
+            }
+          ]
+        }
+      ],
+      
+      "error_handling": {
+        "global_timeout": 300,
+        "retry_policy": {
+          "max_retries": 2,
+          "backoff_strategy": "linear",
+          "retry_delay": 5
+        },
+        "fallback_operations": [
+          {
+            "condition": "data_source_timeout",
+            "action": "use_cached_data",
+            "max_age": 86400
+          },
+          {
+            "condition": "api_rate_limit",
+            "action": "delay_and_retry",
+            "delay": 60
+          }
+        ],
+        "partial_failure_handling": "continue_with_available_data"
+      },
+      
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "object",
+            "properties": {
+              "condition": {"type": "string"},
+              "genes_found": {"type": "integer"},
+              "variants_analyzed": {"type": "integer"},
+              "pathways_enriched": {"type": "integer"},
+              "drug_interactions": {"type": "integer"}
+            }
+          },
+          "detailed_results": {
+            "type": "object",
+            "properties": {
+              "genes": {"type": "array"},
+              "variants": {"type": "array"},
+              "pathways": {"type": "array"},
+              "drug_recommendations": {"type": "array"},
+              "warnings": {"type": "array"}
+            }
+          },
+          "visualizations": {
+            "type": "object",
+            "properties": {
+              "network_graph": {"type": "string"},
+              "pathway_diagram": {"type": "string"}
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "execution_time": {"type": "number"},
+              "data_sources_used": {"type": "array"},
+              "cache_hits": {"type": "integer"},
+              "warnings": {"type": "array"}
+            }
+          }
+        }
+      }
+    },
+    
+    "quick_gene_lookup": {
+      "description": "Fast lookup for basic gene information",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "genes": {"$ref": "#/parameter_templates/gene_identifiers"}
+        },
+        "required": ["genes"]
+      },
+      "steps": [
+        {
+          "name": "gene_info",
+          "endpoint": "getGene",
+          "data_source": "local_genomics_db",
+          "parameters": {
+            "gene": "${INPUT:genes[0]}"
+          },
+          "output_key": "gene_info",
+          "cache": {
+            "enabled": true,
+            "ttl": 86400
+          }
+        }
+      ],
+      "timeout": 10
+    }
+  },
+  
+  "validation_rules": {
+    "endpoint_specific": {
+      "getMentalHealthGenes": {
+        "required_if": {
+          "condition": "at_least_one",
+          "parameters": ["condition", "study_type", "population"]
+        },
+        "parameter_dependencies": {
+          "include_drug_targets": {
+            "requires": ["condition"]
+          }
+        }
+      },
+      "getPolygeneticRiskScores": {
+        "conditional_required": {
+          "variant_data": {
+            "required_when": "prs_method != 'population_average'"
+          }
+        },
+        "custom_validation": {
+          "genotype_format": "^[0-2]/[0-2]$|^[ATCG]/[ATCG]$"
+        }
+      }
+    },
+    
+    "data_quality": {
+      "gene_identifiers": {
+        "validation_endpoint": "validateGeneIds",
+        "cache_duration": "24h",
+        "fallback_validation": "regex"
+      },
+      "allele_frequency": {
+        "range_validation": {
+          "min_frequency": {"min": 0, "max": 1},
+          "max_frequency": {"min": 0, "max": 1},
+          "constraint": "min_frequency <= max_frequency"
+        }
+      },
+      "age_range": {
+        "range_validation": {
+          "min_age": {"min": 0, "max": 120},
+          "max_age": {"min": 0, "max": 120},
+          "constraint": "min_age <= max_age"
+        }
+      }
+    }
+  },
+  
+  "data_processors": {
+    "vcf_annotator": {
+      "input_format": "vcf",
+      "output_format": "json",
+      "transformations": [
+        {
+          "type": "filter",
+          "criteria": "QUAL > 30 AND DP > 10"
+        },
+        {
+          "type": "annotate",
+          "annotation_sources": {
+            "clinvar": {
+              "fields": ["clinical_significance", "review_status"],
+              "cache_duration": "7d"
+            },
+            "dbsnp": {
+              "fields": ["rs_id", "allele_frequencies"],
+              "cache_duration": "30d"
+            }
+          }
+        },
+        {
+          "type": "consequence_prediction",
+          "tools": ["vep", "annovar"],
+          "consensus_required": true
+        }
+      ]
+    },
+    
+    "expression_normalizer": {
+      "input_format": "csv",
+      "output_format": "json",
+      "transformations": [
+        {
+          "type": "quality_control",
+          "filters": {
+            "min_expression": 0.1,
+            "max_missing_samples": 0.5
+          }
+        },
+        {
+          "type": "normalize",
+          "method": "log2_tpm",
+          "pseudocount": 1
+        },
+        {
+          "type": "batch_correction",
+          "method": "combat",
+          "batch_variable": "sequencing_batch"
+        }
+      ]
+    }
+  },
+  
+  "caching": {
+    "default_ttl": 3600,
+    "max_cache_size": "500MB",
+    "cache_backends": {
+      "memory": {
+        "max_size": "100MB",
+        "eviction_policy": "lru"
+      },
+      "file_system": {
+        "cache_dir": "./cache",
+        "max_size": "400MB",
+        "compression": true
+      }
+    },
+    "cache_strategies": {
+      "gene_info": {
+        "backend": "memory",
+        "ttl": 86400
+      },
+      "pathway_analysis": {
+        "backend": "file_system", 
+        "ttl": 3600
+      },
+      "literature_search": {
+        "backend": "file_system",
+        "ttl": 86400
+      }
+    }
+  },
+  
+  "monitoring": {
+    "metrics": {
+      "request_count": true,
+      "response_time": true,
+      "error_rate": true,
+      "cache_hit_rate": true,
+      "data_source_availability": true
+    },
+    "logging": {
+      "level": "info",
+      "format": "json",
+      "include_request_id": true,
+      "sensitive_fields": ["api_key", "patient_data"]
+    },
+    "alerts": {
+      "error_rate_threshold": 0.05,
+      "response_time_threshold": 30,
+      "data_source_downtime_threshold": 60
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "model": "./models/llama-2-13b-chat.Q4_K_M.gguf",
+  "prompt": "Analyze how long-term potentiation (LTP) contributes to memory consolidation in the hippocampus and describe how this might be disrupted in early-stage Alzheimer's disease.",
+  "temperature": 0.65,
+  "max_tokens": 1500,
+  "top_p": 0.92,
+  "repeat_penalty": 1.15,
+  "context": [
+    {
+      "role": "system",
+      "content": "You are a neuroscience research assistant specializing in synaptic plasticity and cognitive modeling."
+    },
+    {
+      "role": "user",
+      "content": "We are investigating learning behavior in relation to hippocampal function and LTP mechanisms."
+    }
+  ],
+  "task_metadata": {
+    "research_topic": "Synaptic Plasticity and Cognitive Modeling",
+    "hypothesis": "Disruptions in LTP impair memory formation and contribute to early cognitive decline in neurodegenerative conditions.",
+    "model_variables": ["LTP", "BDNF", "calcium influx", "tau protein", "hippocampus"],
+    "simulation_type": "neurobiological"
+  }
+}

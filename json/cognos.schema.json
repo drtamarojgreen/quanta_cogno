@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LlamaCppCognitionResearchRequest",
+  "description": "Schema for requests to LlamaCpp in a cognitive and synaptic plasticity modeling research tool",
+  "type": "object",
+  "properties": {
+    "model": {
+      "type": "string",
+      "description": "The name or path of the LlamaCpp model to use"
+    },
+    "prompt": {
+      "type": "string",
+      "description": "Scientific or technical query to be processed by the model"
+    },
+    "temperature": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 2,
+      "default": 0.7,
+      "description": "Controls the creativity/randomness of the output"
+    },
+    "max_tokens": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4096,
+      "default": 1024,
+      "description": "Maximum number of tokens to generate"
+    },
+    "top_p": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.9,
+      "description": "Controls nucleus sampling for focused responses"
+    },
+    "repeat_penalty": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 2,
+      "default": 1.1,
+      "description": "Penalty for repeating tokens"
+    },
+    "context": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["system", "user", "assistant"],
+            "description": "Who provided the context"
+          },
+          "content": {
+            "type": "string",
+            "description": "Text content for contextual understanding"
+          }
+        },
+        "required": ["role", "content"]
+      },
+      "description": "Optional previous exchanges or instructions for context"
+    },
+    "task_metadata": {
+      "type": "object",
+      "description": "Metadata about the scientific task or simulation",
+      "properties": {
+        "research_topic": {
+          "type": "string",
+          "description": "Topic area within cognitive neuroscience"
+        },
+        "hypothesis": {
+          "type": "string",
+          "description": "Research hypothesis being tested"
+        },
+        "model_variables": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Variables or parameters to model (e.g., dopamine, LTP)"
+        },
+        "simulation_type": {
+          "type": "string",
+          "enum": ["conceptual", "mathematical", "neurobiological", "behavioral"],
+          "description": "Type of simulation"
+        }
+      },
+      "required": ["research_topic", "hypothesis"]
+    }
+  },
+  "required": ["model", "prompt"]
+}

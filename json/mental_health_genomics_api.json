@@ -1,0 +1,708 @@
+[
+    {
+        "name": "getGene",
+        "description": "get metadata about the gene",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "gene": {
+                    "type": "string",
+                    "description": "gene id",
+                    "default": null
+                }
+            },
+            "required": [
+                "gene"
+            ],
+            "optional": []
+        }
+    },
+    {
+        "name": "getGeneByAccession",
+        "description": "search by gene id",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "accession_ids": {
+                    "type": "array",
+                    "description": "one or multiple accession ids",
+                    "items": {
+                        "type": "accessionId",
+                        "description": "one or multiple accession ids"
+                    }
+                },
+                "symbols": {
+                    "type": "array",
+                    "description": "filter parameters",
+                    "items": {
+                        "type": "symbol",
+                        "description": "symbol filter"
+                    }
+                },
+                "locations": {
+                    "type": "array",
+                    "description": "locations with a chromosome or accession and optional range",
+                    "items": {
+                        "type": "loci",
+                        "description": "location reference"
+                    }
+                },
+                "gene_types": {
+                    "type": "array",
+                    "description": "gene types",
+                    "items": {
+                        "type": "type",
+                        "description": "gene type filter"
+                    }
+                },
+                "search_text": {
+                    "type": "array",
+                    "description": "search text",
+                    "items": {
+                        "type": "text",
+                        "description": "free text filter"
+                    }
+                },
+                "geneId": {
+                    "type": "string",
+                    "description": "geneId",
+                    "default": null
+                }
+            },
+            "required": [],
+            "optional": [
+                "accession_ids",
+                "symbols",
+                "locations",
+                "gene_types",
+                "search_text",
+                "geneId"
+            ]
+        }
+    },
+    {
+        "name": "getGeneSummary",
+        "description": "get a gene summary, by default paged or tabular for multiple",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "gene_ids": {
+                    "type": "array",
+                    "description": "one or multiple gene ids",
+                    "items": {
+                        "type": "geneId",
+                        "description": "one or multiple gene ids"
+                    }
+                },
+                "symbols": {
+                    "type": "array",
+                    "description": "filter parameters",
+                    "items": {
+                        "type": "symbol",
+                        "description": "symbol filter"
+                    }
+                },
+                "locus_tags": {
+                    "type": "array",
+                    "description": "gene locus tags",
+                    "items": {
+                        "type": "loci",
+                        "description": "location reference"
+                    }
+                },
+                "include_headers": {
+                    "type": "Boolean",
+                    "description": "include tabular headers flag",
+                    "default": null
+                },
+                "accession_filter": {
+                    "type": "array",
+                    "description": "accession id filter",
+                    "items": {
+                        "type": "type",
+                        "description": "accession filter"
+                    }
+                }
+            },
+            "required": [],
+            "optional": [
+                "gene_ids",
+                "symbols",
+                "locus_tags",
+                "accession_filter",
+                "include_headers"
+            ]
+        }
+    },
+    {
+        "name": "findByTaxon",
+        "description": "find by taxonomic identifier",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "taxon": {
+                    "type": "string",
+                    "description": "taxonomical identifier",
+                    "default": null
+                },
+                "locus_tags": {
+                    "type": "array",
+                    "description": "gene locus tags",
+                    "items": {
+                        "type": "loci",
+                        "description": "location reference"
+                    }
+                },
+                "include_headers": {
+                    "type": "Boolean",
+                    "description": "include tabular headers flag",
+                    "default": null
+                }
+            },
+            "required": [
+                "taxon"
+            ],
+            "optional": [
+                "locus_tags",
+                "include_headers"
+            ]
+        }
+    },
+    {
+        "name": "getMentalHealthGenes",
+        "description": "retrieve genes associated with mental health conditions",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "condition": {
+                    "type": "string",
+                    "description": "mental health condition (depression, anxiety, bipolar, schizophrenia, autism, adhd, ptsd, etc.)",
+                    "default": null
+                },
+                "confidence_level": {
+                    "type": "string",
+                    "description": "evidence confidence level (high, medium, low, all)",
+                    "default": "medium"
+                },
+                "study_type": {
+                    "type": "array",
+                    "description": "types of studies to include",
+                    "items": {
+                        "type": "string",
+                        "description": "study type (gwas, candidate_gene, linkage, expression, knockout, etc.)"
+                    }
+                },
+                "population": {
+                    "type": "array",
+                    "description": "population ancestry groups",
+                    "items": {
+                        "type": "string",
+                        "description": "population group (european, east_asian, african, hispanic, mixed, etc.)"
+                    }
+                },
+                "include_drug_targets": {
+                    "type": "Boolean",
+                    "description": "include genes that are known drug targets",
+                    "default": false
+                }
+            },
+            "required": [],
+            "optional": [
+                "condition",
+                "confidence_level",
+                "study_type",
+                "population",
+                "include_drug_targets"
+            ]
+        }
+    },
+    {
+        "name": "getGeneVariants",
+        "description": "retrieve genetic variants for specified genes with mental health relevance",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "gene_ids": {
+                    "type": "array",
+                    "description": "gene identifiers",
+                    "items": {
+                        "type": "string",
+                        "description": "gene id"
+                    }
+                },
+                "variant_type": {
+                    "type": "array",
+                    "description": "types of variants to include",
+                    "items": {
+                        "type": "string",
+                        "description": "variant type (snp, indel, cnv, structural, regulatory, etc.)"
+                    }
+                },
+                "clinical_significance": {
+                    "type": "array",
+                    "description": "clinical significance categories",
+                    "items": {
+                        "type": "string",
+                        "description": "significance level (pathogenic, likely_pathogenic, uncertain, likely_benign, benign, drug_response)"
+                    }
+                },
+                "allele_frequency": {
+                    "type": "object",
+                    "description": "allele frequency filters",
+                    "properties": {
+                        "min_frequency": {
+                            "type": "number",
+                            "description": "minimum allele frequency"
+                        },
+                        "max_frequency": {
+                            "type": "number",
+                            "description": "maximum allele frequency"
+                        },
+                        "population": {
+                            "type": "string",
+                            "description": "reference population"
+                        }
+                    }
+                },
+                "include_pharmacogenomics": {
+                    "type": "Boolean",
+                    "description": "include pharmacogenomic variants",
+                    "default": false
+                }
+            },
+            "required": [
+                "gene_ids"
+            ],
+            "optional": [
+                "variant_type",
+                "clinical_significance",
+                "allele_frequency",
+                "include_pharmacogenomics"
+            ]
+        }
+    },
+    {
+        "name": "getPathwayAnalysis",
+        "description": "analyze biological pathways relevant to mental health",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "gene_list": {
+                    "type": "array",
+                    "description": "list of genes for pathway analysis",
+                    "items": {
+                        "type": "string",
+                        "description": "gene identifier"
+                    }
+                },
+                "pathway_databases": {
+                    "type": "array",
+                    "description": "pathway databases to query",
+                    "items": {
+                        "type": "string",
+                        "description": "database name (kegg, reactome, go, biocarta, panther, etc.)"
+                    }
+                },
+                "mental_health_focus": {
+                    "type": "Boolean",
+                    "description": "prioritize mental health related pathways",
+                    "default": true
+                },
+                "enrichment_method": {
+                    "type": "string",
+                    "description": "statistical enrichment method (fisher, hypergeometric, gsea, etc.)",
+                    "default": "fisher"
+                },
+                "significance_threshold": {
+                    "type": "number",
+                    "description": "p-value threshold for significance",
+                    "default": 0.05
+                },
+                "include_drug_pathways": {
+                    "type": "Boolean",
+                    "description": "include pathways targeted by psychiatric medications",
+                    "default": false
+                }
+            },
+            "required": [
+                "gene_list"
+            ],
+            "optional": [
+                "pathway_databases",
+                "mental_health_focus",
+                "enrichment_method",
+                "significance_threshold",
+                "include_drug_pathways"
+            ]
+        }
+    },
+    {
+        "name": "getGeneExpression",
+        "description": "retrieve gene expression data relevant to mental health",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "gene_ids": {
+                    "type": "array",
+                    "description": "gene identifiers",
+                    "items": {
+                        "type": "string",
+                        "description": "gene id"
+                    }
+                },
+                "tissue_types": {
+                    "type": "array",
+                    "description": "tissue types of interest",
+                    "items": {
+                        "type": "string",
+                        "description": "tissue type (brain, blood, saliva, etc.)"
+                    }
+                },
+                "brain_regions": {
+                    "type": "array",
+                    "description": "specific brain regions",
+                    "items": {
+                        "type": "string",
+                        "description": "brain region (prefrontal_cortex, hippocampus, amygdala, striatum, etc.)"
+                    }
+                },
+                "condition_comparison": {
+                    "type": "string",
+                    "description": "compare expression between conditions (case_control, before_after_treatment, etc.)",
+                    "default": null
+                },
+                "age_range": {
+                    "type": "object",
+                    "description": "age range filter",
+                    "properties": {
+                        "min_age": {
+                            "type": "integer",
+                            "description": "minimum age in years"
+                        },
+                        "max_age": {
+                            "type": "integer",
+                            "description": "maximum age in years"
+                        }
+                    }
+                },
+                "include_cell_types": {
+                    "type": "Boolean",
+                    "description": "include cell-type specific expression data",
+                    "default": false
+                }
+            },
+            "required": [
+                "gene_ids"
+            ],
+            "optional": [
+                "tissue_types",
+                "brain_regions",
+                "condition_comparison",
+                "age_range",
+                "include_cell_types"
+            ]
+        }
+    },
+    {
+        "name": "getResearchAssociations",
+        "description": "find research publications and studies linking genes to mental health",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "gene_ids": {
+                    "type": "array",
+                    "description": "gene identifiers",
+                    "items": {
+                        "type": "string",
+                        "description": "gene id"
+                    }
+                },
+                "mental_health_terms": {
+                    "type": "array",
+                    "description": "mental health related search terms",
+                    "items": {
+                        "type": "string",
+                        "description": "search term"
+                    }
+                },
+                "publication_years": {
+                    "type": "object",
+                    "description": "publication year range",
+                    "properties": {
+                        "start_year": {
+                            "type": "integer",
+                            "description": "earliest publication year"
+                        },
+                        "end_year": {
+                            "type": "integer",
+                            "description": "latest publication year"
+                        }
+                    }
+                },
+                "study_types": {
+                    "type": "array",
+                    "description": "types of studies to include",
+                    "items": {
+                        "type": "string",
+                        "description": "study type (clinical_trial, meta_analysis, cohort, case_control, etc.)"
+                    }
+                },
+                "impact_threshold": {
+                    "type": "number",
+                    "description": "minimum journal impact factor",
+                    "default": null
+                },
+                "include_clinical_trials": {
+                    "type": "Boolean",
+                    "description": "include ongoing clinical trials",
+                    "default": false
+                }
+            },
+            "required": [],
+            "optional": [
+                "gene_ids",
+                "mental_health_terms",
+                "publication_years",
+                "study_types",
+                "impact_threshold",
+                "include_clinical_trials"
+            ]
+        }
+    },
+    {
+        "name": "getDrugGeneInteractions",
+        "description": "retrieve drug-gene interactions relevant to mental health treatment",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "gene_ids": {
+                    "type": "array",
+                    "description": "gene identifiers",
+                    "items": {
+                        "type": "string",
+                        "description": "gene id"
+                    }
+                },
+                "drug_classes": {
+                    "type": "array",
+                    "description": "drug classes of interest",
+                    "items": {
+                        "type": "string",
+                        "description": "drug class (antidepressants, antipsychotics, mood_stabilizers, anxiolytics, etc.)"
+                    }
+                },
+                "interaction_type": {
+                    "type": "array",
+                    "description": "types of interactions",
+                    "items": {
+                        "type": "string",
+                        "description": "interaction type (metabolism, efficacy, toxicity, dosing, etc.)"
+                    }
+                },
+                "evidence_level": {
+                    "type": "string",
+                    "description": "minimum evidence level (high, moderate, low)",
+                    "default": "moderate"
+                },
+                "include_guidelines": {
+                    "type": "Boolean",
+                    "description": "include clinical practice guidelines",
+                    "default": true
+                },
+                "population_specific": {
+                    "type": "Boolean",
+                    "description": "include population-specific recommendations",
+                    "default": false
+                }
+            },
+            "required": [],
+            "optional": [
+                "gene_ids",
+                "drug_classes",
+                "interaction_type",
+                "evidence_level",
+                "include_guidelines",
+                "population_specific"
+            ]
+        }
+    },
+    {
+        "name": "getPolygeneticRiskScores",
+        "description": "calculate or retrieve polygenic risk scores for mental health conditions",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "condition": {
+                    "type": "string",
+                    "description": "mental health condition for PRS calculation",
+                    "default": null
+                },
+                "variant_data": {
+                    "type": "array",
+                    "description": "variant data for PRS calculation",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "variant_id": {
+                                "type": "string",
+                                "description": "variant identifier"
+                            },
+                            "genotype": {
+                                "type": "string",
+                                "description": "genotype (0/0, 0/1, 1/1)"
+                            }
+                        }
+                    }
+                },
+                "reference_population": {
+                    "type": "string",
+                    "description": "reference population for PRS weights",
+                    "default": "mixed"
+                },
+                "prs_method": {
+                    "type": "string",
+                    "description": "PRS calculation method (standard, bayesian, machine_learning)",
+                    "default": "standard"
+                },
+                "include_confidence_intervals": {
+                    "type": "Boolean",
+                    "description": "include confidence intervals in results",
+                    "default": true
+                },
+                "adjust_for_ancestry": {
+                    "type": "Boolean",
+                    "description": "adjust PRS for ancestry",
+                    "default": true
+                }
+            },
+            "required": [],
+            "optional": [
+                "condition",
+                "variant_data",
+                "reference_population",
+                "prs_method",
+                "include_confidence_intervals",
+                "adjust_for_ancestry"
+            ]
+        }
+    },
+    {
+        "name": "getGeneOntology",
+        "description": "retrieve Gene Ontology annotations with mental health relevance",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "gene_ids": {
+                    "type": "array",
+                    "description": "gene identifiers",
+                    "items": {
+                        "type": "string",
+                        "description": "gene id"
+                    }
+                },
+                "go_categories": {
+                    "type": "array",
+                    "description": "GO categories to include",
+                    "items": {
+                        "type": "string",
+                        "description": "GO category (biological_process, molecular_function, cellular_component)"
+                    }
+                },
+                "mental_health_terms": {
+                    "type": "array",
+                    "description": "mental health related GO terms",
+                    "items": {
+                        "type": "string",
+                        "description": "GO term filter (neurotransmission, synaptic, behavior, cognition, etc.)"
+                    }
+                },
+                "evidence_codes": {
+                    "type": "array",
+                    "description": "evidence codes to include",
+                    "items": {
+                        "type": "string",
+                        "description": "evidence code (IDA, IEA, IMP, etc.)"
+                    }
+                },
+                "include_ancestors": {
+                    "type": "Boolean",
+                    "description": "include ancestor GO terms",
+                    "default": true
+                },
+                "slim_ontology": {
+                    "type": "Boolean",
+                    "description": "use GO slim for simplified results",
+                    "default": false
+                }
+            },
+            "required": [
+                "gene_ids"
+            ],
+            "optional": [
+                "go_categories",
+                "mental_health_terms",
+                "evidence_codes",
+                "include_ancestors",
+                "slim_ontology"
+            ]
+        }
+    },
+    {
+        "name": "getProteinInteractions",
+        "description": "retrieve protein-protein interactions for mental health related genes",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "gene_ids": {
+                    "type": "array",
+                    "description": "gene identifiers",
+                    "items": {
+                        "type": "string",
+                        "description": "gene id"
+                    }
+                },
+                "interaction_databases": {
+                    "type": "array",
+                    "description": "protein interaction databases",
+                    "items": {
+                        "type": "string",
+                        "description": "database name (string, biogrid, intact, mint, etc.)"
+                    }
+                },
+                "confidence_score": {
+                    "type": "number",
+                    "description": "minimum confidence score for interactions",
+                    "default": 0.5
+                },
+                "interaction_types": {
+                    "type": "array",
+                    "description": "types of interactions to include",
+                    "items": {
+                        "type": "string",
+                        "description": "interaction type (physical, genetic, predicted, etc.)"
+                    }
+                },
+                "brain_specific": {
+                    "type": "Boolean",
+                    "description": "prioritize brain-specific interactions",
+                    "default": false
+                },
+                "network_depth": {
+                    "type": "integer",
+                    "description": "depth of interaction network to retrieve",
+                    "default": 1
+                }
+            },
+            "required": [
+                "gene_ids"
+            ],
+            "optional": [
+                "interaction_databases",
+                "confidence_score",
+                "interaction_types",
+                "brain_specific",
+                "network_depth"
+            ]
+        }
+    }
+]

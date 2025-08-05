@@ -2,8 +2,10 @@
 #include "json_logic.h"
 #include "api_logic.h"
 #include "api_handler.h"
+#include "flexible_json_logic.h"
 #include <fstream>
 #include <cstdio> // For remove()
+#include <cstdlib> // For setenv
 
 // Helper for comparing JsonValue, since it doesn't have operator==
 bool are_equal(const JsonValue& a, const JsonValue& b) {
@@ -139,6 +141,44 @@ TEST_CASE(ApiHandler, AcceptsBroadSearchEndpointWithValidParameter) {
     
     ASSERT_EQUAL(response.object_value["success"].bool_value, true);
     ASSERT_TRUE(response.object_value["message"].string_value.find("Request processed successfully") != std::string::npos);
+}
+
+TEST_CASE(FlexibleJsonLogic, TemplateResolution) {
+    FlexibleJsonValue val;
+    std::map<std::string, std::string> context;
+    context["user_id"] = "12345";
+    context["timeout"] = "100";
+
+    // Test ENV variable
+    setenv("API_KEY", "test-key", 1);
+    std::string t1 = "key=${ENV:API_KEY}";
+    std::string r1 = val.resolveTemplate(t1, context);
+    ASSERT_EQUAL(r1, "key=test-key");
+
+    // Test INPUT variable
+    std::string t2 = "user=${INPUT:user_id}";
+    std::string r2 = val.resolveTemplate(t2, context);
+    ASSERT_EQUAL(r2, "user=12345");
+
+    // Test CONFIG variable
+    std::string t3 = "timeout=${CONFIG:timeout}";
+    std::string r3 = val.resolveTemplate(t3, context);
+    ASSERT_EQUAL(r3, "timeout=100");
+
+    // Test CONFIG with default
+    std::string t4 = "limit=${CONFIG:limit|50}";
+    std::string r4 = val.resolveTemplate(t4, context);
+    ASSERT_EQUAL(r4, "limit=50");
+
+    // Test multiple variables
+    std::string t5 = "user=${INPUT:user_id}, key=${ENV:API_KEY}, timeout=${CONFIG:timeout}";
+    std::string r5 = val.resolveTemplate(t5, context);
+    ASSERT_EQUAL(r5, "user=12345, key=test-key, timeout=100");
+
+    // Test no variables
+    std::string t6 = "this is a plain string";
+    std::string r6 = val.resolveTemplate(t6, context);
+    ASSERT_EQUAL(r6, "this is a plain string");
 }
 
 TEST_CASE(ApiHandler, DoesNotAffectUnrelatedEndpoints) {

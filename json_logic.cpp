@@ -60,43 +60,78 @@ std::string JsonValue::serialize() const {
     return os.str();
 }
 
-// A minimal parser that only supports flat objects with string/number/bool/null
-JsonValue JsonValue::parse(const std::string& s) {
-    JsonValue root = makeObject();
-    size_t i = 0;
-    auto skip = [&]{ while(i < s.size() && isspace(s[i])) i++; };
-    skip();
-    if(s[i] != '{') return root;
-    i++; skip();
-    while(i < s.size() && s[i] != '}') {
-        // parse key
-        if(s[i] != '"') break;
+// Forward declaration for recursive parsing
+static JsonValue parse_value(const std::string& s, size_t& i);
+
+// Helper to skip whitespace
+static void skip_space(const std::string& s, size_t& i) {
+    while (i < s.size() && isspace(s[i])) {
         i++;
-        size_t start = i;
-        while(i < s.size() && s[i] != '"') i++;
-        std::string key = s.substr(start, i - start);
-        i++; skip();
-        if(s[i] != ':') break;
-        i++; skip();
-        // parse value
-        JsonValue v;
-        if(s[i] == '"') {
-            i++;
-            start = i;
-            while(i < s.size() && s[i] != '"') i++;
-            v = makeString(s.substr(start, i-start));
-            i++; skip();
-        } else if(isdigit(s[i]) || s[i]=='-') {
-            start = i;
-            while(i < s.size() && (isdigit(s[i])||s[i]=='.'||s[i]=='-')) i++;
-            double num = atof(s.substr(start, i-start).c_str());
-            v = makeNumber(num);
-            skip();
-        } else if(s.compare(i,4,"true")==0) { v = makeBool(true); i+=4; skip(); }
-        else if(s.compare(i,5,"false")==0) { v = makeBool(false); i+=5; skip(); }
-        else { v = makeNull(); }
-        root.object_value[key] = v;
-        if(s[i] == ',') { i++; skip(); } else break;
     }
-    return root;
+}
+
+// Helper to parse a string
+static std::string parse_string(const std::string& s, size_t& i) {
+    i++; // Skip leading '"'
+    size_t start = i;
+    while (i < s.size() && s[i] != '"') {
+        // This parser doesn't handle escaped quotes, for simplicity
+        i++;
+    }
+    std::string str = s.substr(start, i - start);
+    i++; // Skip trailing '"'
+    return str;
+}
+
+// Helper to parse an object
+static JsonValue parse_object(const std::string& s, size_t& i) {
+    JsonValue obj = JsonValue::makeObject();
+    i++; // Skip '{'
+    skip_space(s, i);
+    while (i < s.size() && s[i] != '}') {
+        std::string key = parse_string(s, i);
+        skip_space(s, i);
+        i++; // Skip ':'
+        skip_space(s, i);
+        obj.object_value[key] = parse_value(s, i);
+        skip_space(s, i);
+        if (s[i] == ',') {
+            i++;
+            skip_space(s, i);
+        }
+    }
+    i++; // Skip '}'
+    return obj;
+}
+
+// Main recursive value parser
+static JsonValue parse_value(const std::string& s, size_t& i) {
+    skip_space(s, i);
+    switch (s[i]) {
+        case '"':
+            return JsonValue::makeString(parse_string(s, i));
+        case '{':
+            return parse_object(s, i);
+        case 't':
+            i += 4; // "true"
+            return JsonValue::makeBool(true);
+        case 'f':
+            i += 5; // "false"
+            return JsonValue::makeBool(false);
+        case 'n':
+            i += 4; // "null"
+            return JsonValue::makeNull();
+        default: // Number
+            size_t start = i;
+            while (i < s.size() && (isdigit(s[i]) || s[i] == '.' || s[i] == '-')) {
+                i++;
+            }
+            double num = std::stod(s.substr(start, i - start));
+            return JsonValue::makeNumber(num);
+    }
+}
+
+JsonValue JsonValue::parse(const std::string& s) {
+    size_t i = 0;
+    return parse_value(s, i);
 }

@@ -16,6 +16,7 @@ public:
     std::vector<JsonValue> array_value;
 
     JsonValue();
+    virtual ~JsonValue() = default;
     static JsonValue makeString(const std::string&);
     static JsonValue makeNumber(double);
     static JsonValue makeBool(bool);

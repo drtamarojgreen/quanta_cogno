@@ -1,8 +1,8 @@
-#include "testing_framework.h"
-#include "json_logic.h"
-#include "api_logic.h"
-#include "api_handler.h"
-#include "flexible_json_logic.h"
+#include "../testing_framework.h"
+#include "../json_logic.h"
+#include "../api_logic.h"
+#include "../api_handler.h"
+#include "../flexible_json_logic.h"
 #include <fstream>
 #include <cstdio> // For remove()
 #include <cstdlib> // For setenv
@@ -141,6 +141,19 @@ TEST_CASE(ApiHandler, AcceptsBroadSearchEndpointWithValidParameter) {
     
     ASSERT_EQUAL(response.object_value["success"].bool_value, true);
     ASSERT_TRUE(response.object_value["message"].string_value.find("Request processed successfully") != std::string::npos);
+}
+
+TEST_CASE(FlexibleJsonLogic, CanBeTreatedAsJsonValue) {
+    FlexibleJsonValue flex_val;
+    JsonValue* base_ptr = &flex_val;
+
+    // Check that the object can be pointed to by a base class pointer,
+    // confirming the inheritance relationship.
+    ASSERT_TRUE(base_ptr != nullptr);
+
+    // A default-constructed JsonValue (and by extension FlexibleJsonValue)
+    // should have the type NIL.
+    ASSERT_EQUAL(base_ptr->type, JsonValue::NIL);
 }
 
 TEST_CASE(FlexibleJsonLogic, TemplateResolution) {

@@ -105,6 +105,8 @@ TEST_CASE(ApiHandler, RejectsGetResearchAssociationsWithNoParameters) {
     ASSERT_EQUAL(response.object_value["success"].bool_value, false);
     ASSERT_TRUE(response.object_value.count("error") > 0);
     ASSERT_TRUE(response.object_value["error"].object_value["message"].string_value.find("requires at least one search parameter") != std::string::npos);
+    ASSERT_TRUE(response.object_value["error"].object_value.count("requestId") > 0);
+    ASSERT_TRUE(response.object_value["error"].object_value["requestId"].string_value.rfind("req_", 0) == 0);
 }
 
 TEST_CASE(ApiHandler, RejectsGetDrugGeneInteractionsWithNoParameters) {
@@ -117,6 +119,8 @@ TEST_CASE(ApiHandler, RejectsGetDrugGeneInteractionsWithNoParameters) {
     ASSERT_EQUAL(response.object_value["success"].bool_value, false);
     ASSERT_TRUE(response.object_value.count("error") > 0);
     ASSERT_TRUE(response.object_value["error"].object_value["message"].string_value.find("requires at least one search parameter") != std::string::npos);
+    ASSERT_TRUE(response.object_value["error"].object_value.count("requestId") > 0);
+    ASSERT_TRUE(response.object_value["error"].object_value["requestId"].string_value.rfind("req_", 0) == 0);
 }
 
 TEST_CASE(ApiHandler, RejectsGetPolygeneticRiskScoresWithNoParameters) {
@@ -129,6 +133,8 @@ TEST_CASE(ApiHandler, RejectsGetPolygeneticRiskScoresWithNoParameters) {
     ASSERT_EQUAL(response.object_value["success"].bool_value, false);
     ASSERT_TRUE(response.object_value.count("error") > 0);
     ASSERT_TRUE(response.object_value["error"].object_value["message"].string_value.find("requires at least one search parameter") != std::string::npos);
+    ASSERT_TRUE(response.object_value["error"].object_value.count("requestId") > 0);
+    ASSERT_TRUE(response.object_value["error"].object_value["requestId"].string_value.rfind("req_", 0) == 0);
 }
 
 TEST_CASE(ApiHandler, AcceptsBroadSearchEndpointWithValidParameter) {
@@ -202,6 +208,8 @@ TEST_CASE(ApiHandler, RejectsRequestWithMissingParametersObject) {
     ASSERT_EQUAL(response.object_value["success"].bool_value, false);
     ASSERT_TRUE(response.object_value.count("error") > 0);
     ASSERT_TRUE(response.object_value["error"].object_value["message"].string_value.find("Missing parameters object") != std::string::npos);
+    ASSERT_TRUE(response.object_value["error"].object_value.count("requestId") > 0);
+    ASSERT_TRUE(response.object_value["error"].object_value["requestId"].string_value.rfind("req_", 0) == 0);
 }
 
 TEST_CASE(ApiHandler, RejectsRequestWithOnlyNullParameters) {
@@ -216,6 +224,8 @@ TEST_CASE(ApiHandler, RejectsRequestWithOnlyNullParameters) {
     ASSERT_EQUAL(response.object_value["success"].bool_value, false);
     ASSERT_TRUE(response.object_value.count("error") > 0);
     ASSERT_TRUE(response.object_value["error"].object_value["message"].string_value.find("requires at least one non-empty search parameter") != std::string::npos);
+    ASSERT_TRUE(response.object_value["error"].object_value.count("requestId") > 0);
+    ASSERT_TRUE(response.object_value["error"].object_value["requestId"].string_value.rfind("req_", 0) == 0);
 }
 
 TEST_CASE(ApiHandler, RejectsRequestWithOnlyEmptyStringParameters) {
@@ -229,6 +239,8 @@ TEST_CASE(ApiHandler, RejectsRequestWithOnlyEmptyStringParameters) {
     ASSERT_EQUAL(response.object_value["success"].bool_value, false);
     ASSERT_TRUE(response.object_value.count("error") > 0);
     ASSERT_TRUE(response.object_value["error"].object_value["message"].string_value.find("requires at least one non-empty search parameter") != std::string::npos);
+    ASSERT_TRUE(response.object_value["error"].object_value.count("requestId") > 0);
+    ASSERT_TRUE(response.object_value["error"].object_value["requestId"].string_value.rfind("req_", 0) == 0);
 }
 
 TEST_CASE(ApiHandler, AcceptsRequestWithValidArrayParameter) {
@@ -258,6 +270,8 @@ TEST_CASE(ApiHandler, RejectsGetMentalHealthGenesWithInvalidConfidence) {
     ASSERT_TRUE(response.object_value.count("error") > 0);
     std::string expected_msg = "Invalid parameter: 'confidence_level' must be one of [high, medium, low, all].";
     ASSERT_EQUAL(response.object_value["error"].object_value["message"].string_value, expected_msg);
+    ASSERT_TRUE(response.object_value["error"].object_value.count("requestId") > 0);
+    ASSERT_TRUE(response.object_value["error"].object_value["requestId"].string_value.rfind("req_", 0) == 0);
 }
 
 TEST_CASE(ApiHandler, AcceptsGetMentalHealthGenesWithValidConfidence) {

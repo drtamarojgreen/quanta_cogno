@@ -184,7 +184,7 @@ TEST_CASE(FlexibleJsonLogic, TemplateResolution) {
 TEST_CASE(ApiHandler, DoesNotAffectUnrelatedEndpoints) {
     JsonValue request = JsonValue::makeObject();
     JsonValue params = JsonValue::makeObject();
-    params.object_value["gene_ids"] = JsonValue::makeString("COMT");
+    params.object_value["gene"] = JsonValue::makeString("COMT");
     request.object_value["parameters"] = params;
     
     JsonValue response = process_api_request("getGene", request);
@@ -242,6 +242,32 @@ TEST_CASE(ApiHandler, AcceptsRequestWithValidArrayParameter) {
     
     JsonValue response = process_api_request("getDrugGeneInteractions", request);
     
+    ASSERT_EQUAL(response.object_value["success"].bool_value, true);
+    ASSERT_TRUE(response.object_value["message"].string_value.find("Request processed successfully") != std::string::npos);
+}
+
+TEST_CASE(ApiHandler, RejectsGetMentalHealthGenesWithInvalidConfidence) {
+    JsonValue request = JsonValue::makeObject();
+    JsonValue params = JsonValue::makeObject();
+    params.object_value["confidence_level"] = JsonValue::makeString("invalid_value");
+    request.object_value["parameters"] = params;
+
+    JsonValue response = process_api_request("getMentalHealthGenes", request);
+
+    ASSERT_EQUAL(response.object_value["success"].bool_value, false);
+    ASSERT_TRUE(response.object_value.count("error") > 0);
+    std::string expected_msg = "Invalid parameter: 'confidence_level' must be one of [high, medium, low, all].";
+    ASSERT_EQUAL(response.object_value["error"].object_value["message"].string_value, expected_msg);
+}
+
+TEST_CASE(ApiHandler, AcceptsGetMentalHealthGenesWithValidConfidence) {
+    JsonValue request = JsonValue::makeObject();
+    JsonValue params = JsonValue::makeObject();
+    params.object_value["confidence_level"] = JsonValue::makeString("high");
+    request.object_value["parameters"] = params;
+
+    JsonValue response = process_api_request("getMentalHealthGenes", request);
+
     ASSERT_EQUAL(response.object_value["success"].bool_value, true);
     ASSERT_TRUE(response.object_value["message"].string_value.find("Request processed successfully") != std::string::npos);
 }

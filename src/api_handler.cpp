@@ -54,6 +54,25 @@ JsonValue process_api_request(const std::string& endpoint, const JsonValue& requ
         }
     }
     
+    // Validate 'confidence_level' for 'getMentalHealthGenes' endpoint
+    if (endpoint == "getMentalHealthGenes") {
+        if (request.object_value.count("parameters")) {
+            const auto& parameters = request.object_value.at("parameters").object_value;
+            if (parameters.count("confidence_level")) {
+                const auto& confidence_param = parameters.at("confidence_level");
+                if (confidence_param.type == JsonValue::STRING) {
+                    const std::string& value = confidence_param.string_value;
+                    const std::set<std::string> valid_levels = {"high", "medium", "low", "all"};
+                    if (valid_levels.find(value) == valid_levels.end()) {
+                        return create_error_response(
+                            "Invalid parameter: 'confidence_level' must be one of [high, medium, low, all]."
+                        );
+                    }
+                }
+            }
+        }
+    }
+
     // If validation passes, return success
     return create_success_response("Request processed successfully for endpoint: " + endpoint);
 }

@@ -1,5 +1,9 @@
 #include "api_handler.h"
 #include <set>
+#include <iostream>
+#include <chrono>
+#include <random>
+#include <sstream>
 
 // Endpoints that require at least one search parameter
 static const std::set<std::string> BROAD_SEARCH_ENDPOINTS = {
@@ -8,49 +12,61 @@ static const std::set<std::string> BROAD_SEARCH_ENDPOINTS = {
     "getPolygeneticRiskScores"
 };
 
+// Helper function to generate a unique request ID
+std::string generate_request_id() {
+    auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()
+    ).count();
+    static std::mt19937 gen(std::random_device{}());
+    std::uniform_int_distribution<> distrib(1000, 9999);
+
+    std::stringstream ss;
+    ss << "req_" << timestamp << "_" << distrib(gen);
+    return ss.str();
+}
+
 JsonValue process_api_request(const std::string& endpoint, const JsonValue& request) {
+    const std::string request_id = generate_request_id();
+    const auto start_time = std::chrono::high_resolution_clock::now();
+
+    std::cout << "[INFO] Request ID: " << request_id
+              << " | Timestamp: " << std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count()
+              << " | Endpoint: " << endpoint
+              << " | Parameters: " << request.serialize() << std::endl;
+
+    auto log_and_return_error = [&](const std::string& message, int error_code = 400) {
+        auto end_time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> duration = end_time - start_time;
+        std::cout << "[ERROR] Request ID: " << request_id
+                  << " | Status: Failure"
+                  << " | Duration: " << duration.count() << "ms"
+                  << " | Message: " << message << std::endl;
+        return create_error_response(message, error_code);
+    };
+
     // Check if this is a broad search endpoint that requires parameters
     if (BROAD_SEARCH_ENDPOINTS.find(endpoint) != BROAD_SEARCH_ENDPOINTS.end()) {
-        // Check if request has parameters
         if (request.object_value.find("parameters") == request.object_value.end()) {
-            return create_error_response("Missing parameters object for endpoint: " + endpoint);
+            return log_and_return_error("Missing parameters object for endpoint: " + endpoint);
         }
         
         const JsonValue& parameters = request.object_value.at("parameters");
         
-        // Check if parameters object is empty or has no meaningful parameters
         if (parameters.type != JsonValue::OBJECT || parameters.object_value.empty()) {
-            return create_error_response(
-                "Endpoint '" + endpoint + "' requires at least one search parameter to prevent overly broad queries."
-            );
+            return log_and_return_error("Endpoint '" + endpoint + "' requires at least one search parameter to prevent overly broad queries.");
         }
         
-        // Check if all parameters are null or empty
         bool has_valid_parameter = false;
         for (const auto& param : parameters.object_value) {
             if (param.second.type != JsonValue::NIL) {
-                // For string parameters, check if they're not empty
-                if (param.second.type == JsonValue::STRING && !param.second.string_value.empty()) {
-                    has_valid_parameter = true;
-                    break;
-                }
-                // For array parameters, check if they're not empty
-                else if (param.second.type == JsonValue::ARRAY && !param.second.array_value.empty()) {
-                    has_valid_parameter = true;
-                    break;
-                }
-                // For other non-null types, consider them valid
-                else if (param.second.type != JsonValue::STRING && param.second.type != JsonValue::ARRAY) {
-                    has_valid_parameter = true;
-                    break;
-                }
+                if (param.second.type == JsonValue::STRING && !param.second.string_value.empty()) { has_valid_parameter = true; break; }
+                else if (param.second.type == JsonValue::ARRAY && !param.second.array_value.empty()) { has_valid_parameter = true; break; }
+                else if (param.second.type != JsonValue::STRING && param.second.type != JsonValue::ARRAY) { has_valid_parameter = true; break; }
             }
         }
         
         if (!has_valid_parameter) {
-            return create_error_response(
-                "Endpoint '" + endpoint + "' requires at least one non-empty search parameter to prevent overly broad queries."
-            );
+            return log_and_return_error("Endpoint '" + endpoint + "' requires at least one non-empty search parameter to prevent overly broad queries.");
         }
     }
     
@@ -64,16 +80,18 @@ JsonValue process_api_request(const std::string& endpoint, const JsonValue& requ
                     const std::string& value = confidence_param.string_value;
                     const std::set<std::string> valid_levels = {"high", "medium", "low", "all"};
                     if (valid_levels.find(value) == valid_levels.end()) {
-                        return create_error_response(
-                            "Invalid parameter: 'confidence_level' must be one of [high, medium, low, all]."
-                        );
+                        return log_and_return_error("Invalid parameter: 'confidence_level' must be one of [high, medium, low, all].");
                     }
                 }
             }
         }
     }
 
-    // If validation passes, return success
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> duration = end_time - start_time;
+    std::cout << "[INFO] Request ID: " << request_id
+              << " | Status: Success"
+              << " | Duration: " << duration.count() << "ms" << std::endl;
     return create_success_response("Request processed successfully for endpoint: " + endpoint);
 }
 

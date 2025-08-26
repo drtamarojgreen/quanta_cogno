@@ -138,7 +138,7 @@ int main() {
     JsonValue quick_input = JsonValue::makeObject();
     JsonValue quick_genes = JsonValue::makeArray();
     quick_genes.array_value.push_back(JsonValue::makeString("HTR2A"));
-    quick_input.object_value["genes"] = quick_genes;
+    quick_input.object_value["gene_ids"] = quick_genes;
     
     std::cout << "Quick lookup input: " << quick_input.serialize() << std::endl;
     std::cout << "Executing quick gene lookup workflow..." << std::endl;

@@ -184,7 +184,7 @@ TEST_CASE(FlexibleJsonLogic, TemplateResolution) {
 TEST_CASE(ApiHandler, DoesNotAffectUnrelatedEndpoints) {
     JsonValue request = JsonValue::makeObject();
     JsonValue params = JsonValue::makeObject();
-    params.object_value["gene"] = JsonValue::makeString("COMT");
+    params.object_value["gene_ids"] = JsonValue::makeString("COMT");
     request.object_value["parameters"] = params;
     
     JsonValue response = process_api_request("getGene", request);

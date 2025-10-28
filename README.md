@@ -35,20 +35,37 @@ This project is actively being enhanced. The development roadmap is detailed in 
 ## Project Structure
 
 ```
-quanta_cogno/
+.
 ├── docs/
-│   ├── plan.md               # Detailed enhancement plan
-│   └── test_plan.md          # Testing strategy and architecture
-├── features/
-│   └── *.feature             # Human-readable BDD test scenarios
+│   ├── implementation_roadmap.md
+│   ├── json_flexibility_analysis.md
+│   ├── plan.md
+│   └── test_plan.md
 ├── json/
-│   └── *.json                # API specification and sample data
-├── *.cpp                     # C++ source files for logic layers
-├── *.h                       # C++ header files
-├── testing_framework.h       # Header-only unit testing framework
-├── unit_tests.cpp            # Unit tests for C++ logic
-├── bdd_framework.h           # Header-only BDD test framework
-└── bdd_steps.cpp             # C++ implementation of BDD steps
+│   ├── cognos.schema.json
+│   ├── flexible_config_example.json
+│   ├── mental_health_genomics_api.json
+│   └── sample_request.json
+├── src/
+│   ├── examples/
+│   ├── api_handler.cpp
+│   ├── api_handler.h
+│   ├── api_logic.cpp
+│   ├── api_logic.h
+│   ├── flexible_json_logic.cpp
+│   ├── flexible_json_logic.h
+│   ├── json_logic.cpp
+│   ├── json_logic.h
+│   ├── main.cpp
+│   ├── test_runner_main.cpp
+│   ├── testing_framework.h
+│   └── unit_tests.cpp
+├── tests/
+│   ├── bdd_style_tests.cpp
+│   ├── new_unit_tests.cpp
+│   └── unit_tests.cpp
+├── README.md
+└── implementation_summary.md
 ```
 
 ## Testing Strategy
@@ -67,16 +84,28 @@ End-to-end features are tested using a BDD approach.
 2.  **Steps**: The steps in the feature files are implemented in C++ (`bdd_steps.cpp`) using a lightweight BDD framework (`bdd_framework.h`).
 3.  **Execution**: A test runner executable ties everything together, parsing the feature files and executing the corresponding C++ step definitions to validate the application's behavior.
 
-### How to Run Tests
+## Building and Testing
 
-To run the full test suite, compile and execute the main test runner.
+This project is built with C++17. You will need a compatible C++ compiler, such as `g++`.
+
+### Compiling the Main Application
+
+To compile the main application, run the following command from the root directory:
 
 ```bash
-# (Example compilation command)
-# g++ -std=c++11 -o test_runner main.cpp api_logic.cpp json_logic.cpp unit_tests.cpp bdd_steps.cpp
-
-# Run the tests
-./test_runner
+g++ -std=c++17 -I./src -o mental_health_api src/main.cpp src/api_handler.cpp src/api_logic.cpp src/flexible_json_logic.cpp src/json_logic.cpp
 ```
 
-The runner will first execute all unit tests and then proceed with the BDD scenarios, reporting any failures.
+### Compiling and Running Tests
+
+To compile the test runner, which includes all unit and BDD-style tests, run the following command:
+
+```bash
+g++ -std=c++17 -I./src -o test_runner src/test_runner_main.cpp src/api_handler.cpp src/api_logic.cpp src/flexible_json_logic.cpp src/json_logic.cpp src/unit_tests.cpp tests/unit_tests.cpp tests/bdd_style_tests.cpp tests/new_unit_tests.cpp
+```
+
+To run the tests, execute the compiled test runner:
+
+```bash
+./test_runner
+```

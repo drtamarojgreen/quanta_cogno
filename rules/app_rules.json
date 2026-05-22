@@ -1,0 +1,22 @@
+{
+  "app_name": "Quanta Cogno",
+  "version": "1.1.0",
+  "persistence": {
+    "state_file": "app_state.json",
+    "cache_dir": "./cache",
+    "autosave_interval_ms": 5000
+  },
+  "default_config": {
+    "model": "./models/llama-2-13b-chat.Q4_K_M.gguf",
+    "temperature": 0.7,
+    "max_tokens": 1024,
+    "top_p": 0.9,
+    "repeat_penalty": 1.1
+  },
+  "commands": [
+    { "name": "request", "description": "Request data from the API", "alias": "3", "requires_args": true },
+    { "name": "set-model", "description": "Update the active model path", "alias": "1", "requires_args": true },
+    { "name": "clear-cache", "description": "Purge local JSON cache", "alias": "5", "requires_args": false },
+    { "name": "exit", "description": "Terminate the application", "alias": "9", "requires_args": false }
+  ]
+}

@@ -77,6 +77,21 @@ TEST_CASE(App, CanHandleRequestWithCaching) {
     fs::remove_all("./test_app_cache");
 }
 
+TEST_CASE(App, StateRestorationIntegrity) {
+    StateManager sm("integration_test_state.json");
+    JsonValue state = JsonValue::makeObject();
+    state.object_value["model"] = JsonValue::makeString("./models/test_restored.gguf");
+    state.object_value["temperature"] = JsonValue::makeNumber(0.85);
+    
+    sm.update_state(state);
+    
+    JsonValue restored = sm.load_state();
+    ASSERT_EQUAL(restored.object_value["model"].string_value, "./models/test_restored.gguf");
+    ASSERT_EQUAL(restored.object_value["temperature"].number_value, 0.85);
+    
+    fs::remove("integration_test_state.json");
+}
+
 TEST_CASE(JsonLogic, CanCreateAndCheckTypes) {
     JsonValue str = JsonValue::makeString("hello");
     ASSERT_EQUAL(str.type, JsonValue::STRING);
@@ -210,8 +225,8 @@ TEST_CASE(FlexibleJsonLogic, TemplateResolution) {
     context["user_id"] = "12345";
     context["timeout"] = "100";
 
-    // Test ENV variable
-    setenv("API_KEY", "test-key", 1);
+    // Test ENV variable (Win32 compatible)
+    _putenv("API_KEY=test-key");
     std::string t1 = "key=${ENV:API_KEY}";
     std::string r1 = val.resolveTemplate(t1, context);
     ASSERT_EQUAL(r1, "key=test-key");

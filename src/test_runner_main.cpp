@@ -5,13 +5,13 @@ int main() {
     std::cout << "Running unit test suite..." << std::endl;
     
     // Run all registered tests
-    bool all_tests_passed = TestRunner::get_instance().run_all();
+    int failures = TestRunner::get_instance().run_all();
     
-    if (all_tests_passed) {
+    if (failures == 0) {
         std::cout << "All tests passed!" << std::endl;
         return 0;
     } else {
-        std::cout << "Some tests failed!" << std::endl;
+        std::cout << "Some tests failed! Total failures: " << failures << std::endl;
         return 1;
     }
 }

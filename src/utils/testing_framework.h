@@ -24,6 +24,15 @@ inline void _assert_true(bool condition, const std::string& expr, const std::str
     }
 }
 
+inline void _assert_false(bool condition, const std::string& expr, const std::string& file, int line, TestStats& stats) {
+    if (!condition) {
+        stats.passed++;
+    } else {
+        stats.failed++;
+        std::cerr << "\n  [FAIL] " << file << ":" << line << ": ASSERT_FALSE(" << expr << ")\n";
+    }
+}
+
 template<typename T, typename U>
 inline void _assert_equal(const T& a, const U& b, const std::string& expr_a, const std::string& expr_b, const std::string& file, int line, TestStats& stats) {
     if (a == b) {
@@ -37,6 +46,7 @@ inline void _assert_equal(const T& a, const U& b, const std::string& expr_a, con
 }
 
 #define ASSERT_TRUE(cond) _assert_true(cond, #cond, __FILE__, __LINE__, current_test_stats)
+#define ASSERT_FALSE(cond) _assert_false(cond, #cond, __FILE__, __LINE__, current_test_stats)
 #define ASSERT_EQUAL(a, b) _assert_equal(a, b, #a, #b, __FILE__, __LINE__, current_test_stats)
 
 // Test case runner

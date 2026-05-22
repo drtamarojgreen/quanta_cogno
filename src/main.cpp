@@ -1,12 +1,13 @@
 #include "app/app.h"
-#include <iostream>
 
-int main(int argc, char* argv[]) {
-    App app;
-    if (argc > 1) {
-        app.run_cli(argc, argv);
-    } else {
-        app.run_tui();
+namespace qc {
+    int run_app() {
+        qc::app::App app;
+        app.run();
+        return 0;
     }
-    return 0;
+}
+
+int main() {
+    return qc::run_app();
 }

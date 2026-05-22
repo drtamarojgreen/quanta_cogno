@@ -1,0 +1,5 @@
+Situation: Default
+# Structural Restrictions
+Is max_file_lines = 500
+Is forbidden_patterns = catch (...),TODO,assert(true)
+Is required_namespace = qc

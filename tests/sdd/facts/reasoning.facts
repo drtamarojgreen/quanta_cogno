@@ -1,0 +1,9 @@
+Situation: Default
+# Reasoning Gate Data
+# Logic: Key = gate_type, Value = status (1 for passed, 0 for failed)
+InterpretationGate = 1
+ConstraintGate = 1
+ToolSelectionGate = 1
+StrategyGate = 1
+ScopeGate = 1
+NavigationGate = 1

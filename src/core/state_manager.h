@@ -1,22 +1,34 @@
-#ifndef STATE_MANAGER_H
-#define STATE_MANAGER_H
+#ifndef STATE_MANAGER_V2_H
+#define STATE_MANAGER_V2_H
 
-#include "json_logic.h"
+#include "../io/json_parser.h"
 #include <string>
 #include <functional>
+#include <atomic>
+#include <thread>
+
+#include <mutex>
+
+namespace qc::core {
 
 class StateManager {
 public:
     StateManager(const std::string& state_file = "app_state.json");
+    ~StateManager();
+
+    void start_autosave(int interval_ms, std::function<io::JsonValue()> state_provider);
+    void stop_autosave();
     
-    void update_state(const JsonValue& new_state);
-    JsonValue load_state() const;
-    void auto_save_enable(int interval_ms, std::function<JsonValue()> state_provider);
-    void auto_save_disable();
+    void save_immediate(const io::JsonValue& state);
+    std::optional<io::JsonValue> load();
 
 private:
     std::string state_file;
-    void save_state(const JsonValue& state);
+    std::atomic<bool> autosave_running{false};
+    std::thread autosave_thread;
+    mutable std::mutex state_mutex;
 };
 
-#endif // STATE_MANAGER_H
+} // namespace qc::core
+
+#endif // STATE_MANAGER_V2_H

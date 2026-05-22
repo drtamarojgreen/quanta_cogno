@@ -1,196 +1,130 @@
 #include "app.h"
-#include "../api/api_handler.h"
+#include "../visualization/genomic_views.h"
 #include <iostream>
-#include <sstream>
-#include <fstream>
 #include <chrono>
-#include <iomanip>
+#include <vector>
 
-App::App() : cache(nullptr), state_manager(nullptr) {
-    load_rules();
-    
-    // Initialize subsystems using rules
-    auto& persistence = app_rules.object_value.at("persistence");
-    cache = new CacheManager(persistence.object_value.at("cache_dir").string_value);
-    state_manager = new StateManager(persistence.object_value.at("state_file").string_value);
-    
-    load_persistent_state();
-    
-    int interval = static_cast<int>(persistence.object_value.at("autosave_interval_ms").number_value);
-    state_manager->auto_save_enable(interval, [this]() { return get_current_state(); });
-    
-    log_audit("Application initialized with rules: " + app_rules.serialize());
+#ifdef _WIN32
+#include <conio.h>
+#else
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
+#endif
+
+namespace qc::app {
+
+App::App() : vt(80, 24) {
+    init_simulation();
+    init_themes();
 }
 
-App::~App() {
-    if (state_manager) {
-        state_manager->auto_save_disable();
-        delete state_manager;
+App::~App() {}
+
+void App::init_simulation() {
+    core::Gene htr2a{"HTR2A", 0.5, {{"rs6311", 0.8}}};
+    core::Gene comt{"COMT", 0.3, {{"rs4680", 0.2}}};
+    engine.add_gene(htr2a);
+    engine.add_gene(comt);
+}
+
+void App::init_themes() {
+    themes.push_back({"Classic", visualization::FG_WHITE, visualization::FG_CYAN});
+    themes.push_back({"Matrix", visualization::FG_GREEN, visualization::FG_BLACK});
+    themes.push_back({"Sunset", visualization::FG_MAGENTA, visualization::FG_YELLOW});
+}
+
+#ifndef _WIN32
+int kbhit() {
+    struct termios oldt, newt;
+    int ch;
+    int oldf;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+    ch = getchar();
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
+    if(ch != EOF) {
+        ungetc(ch, stdin);
+        return 1;
     }
-    delete cache;
-    log_audit("Application terminated.");
+    return 0;
 }
+char getch() { return getchar(); }
+#endif
 
-void App::load_rules() {
-    std::ifstream f("rules/app_rules.json");
-    if (!f.is_open()) {
-        std::cerr << "Critical Error: Could not load app_rules.json" << std::endl;
-        exit(1);
-    }
-    std::stringstream buffer;
-    buffer << f.rdbuf();
-    app_rules = JsonValue::parse(buffer.str());
+void App::run() {
+    running = true;
+    auto last_time = std::chrono::high_resolution_clock::now();
     
-    // Populate command registry
-    for (const auto& cmd : app_rules.object_value.at("commands").array_value) {
-        CommandDef def{
-            cmd.object_value.at("name").string_value,
-            cmd.object_value.at("description").string_value,
-            cmd.object_value.at("alias").string_value,
-            cmd.object_value.at("requires_args").bool_value
-        };
-        command_registry[def.name] = def;
-        if (!def.alias.empty()) {
-            alias_map[def.alias] = def.name;
-        }
-    }
-}
+    // Clear screen initially
+    std::cout << "\033[2J" << std::flush;
 
-void App::log_audit(const std::string& message) {
-    std::ofstream f("docs/runtime_audits.md", std::ios::app);
-    auto now = std::chrono::system_clock::now();
-    auto in_time_t = std::chrono::system_clock::to_time_t(now);
-    f << "[" << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d %H:%M:%S") << "] " << message << "\n";
-}
-
-void App::load_persistent_state() {
-    JsonValue state = state_manager->load_state();
-    if (state.type == JsonValue::OBJECT) {
-        if (state.object_value.count("model")) current_cfg.model = state.object_value.at("model").string_value;
-        if (state.object_value.count("temperature")) current_cfg.temperature = state.object_value.at("temperature").number_value;
-    } else {
-        auto& def = app_rules.object_value.at("default_config");
-        current_cfg = {
-            def.object_value.at("model").string_value,
-            "",
-            def.object_value.at("temperature").number_value,
-            static_cast<int>(def.object_value.at("max_tokens").number_value),
-            def.object_value.at("top_p").number_value,
-            def.object_value.at("repeat_penalty").number_value
-        };
-    }
-}
-
-JsonValue App::get_current_state() {
-    JsonValue state = JsonValue::makeObject();
-    state.object_value["model"] = JsonValue::makeString(current_cfg.model);
-    state.object_value["temperature"] = JsonValue::makeNumber(current_cfg.temperature);
-    state.object_value["prompt"] = JsonValue::makeString(current_cfg.prompt);
-    return state;
-}
-
-void App::run_cli(int argc, char* argv[]) {
-    if (argc < 2) {
-        std::cout << "Usage: quanta_cogno <command> [args...]\n";
-        return;
-    }
-    std::string cmd_name = argv[1];
-    std::string args = (argc > 2) ? argv[2] : "";
-    
-    // If it's an alias, map it
-    if (alias_map.count(cmd_name)) {
-        cmd_name = alias_map[cmd_name];
-    }
-    
-    process_command(cmd_name, args);
-}
-
-void App::run_tui() {
-    log_audit("Entered TUI mode.");
-    bool running = true;
     while (running) {
-        display_menu();
-        std::string line;
-        std::getline(std::cin, line);
-        
-        if (line == "9" || line == "exit") {
-            running = false;
-        } else {
-            // Check alias map first
-            if (alias_map.count(line)) {
-                std::string cmd_name = alias_map[line];
-                auto def = command_registry.at(cmd_name);
-                std::string args = "";
-                if (def.requires_args) {
-                    std::cout << "Enter arguments for " << cmd_name << ": ";
-                    std::getline(std::cin, args);
-                }
-                process_command(cmd_name, args);
-            } else {
-                process_command(line, "");
-            }
+        auto now = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = now - last_time;
+        last_time = now;
+
+        process_input();
+        if (!paused) {
+            update(elapsed.count() * simulation_speed);
         }
+        render();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(33));
     }
 }
 
-void App::display_menu() {
-    std::cout << "\n--- " << app_rules.object_value.at("app_name").string_value << " v" << app_rules.object_value.at("version").string_value << " ---\n";
-    for (const auto& cmd_pair : command_registry) {
-        const auto& def = cmd_pair.second;
-        std::cout << def.alias << ") " << def.name << " (" << def.description << ")\n";
+void App::process_input() {
+#ifdef _WIN32
+    if (_kbhit()) {
+        handle_keypress(_getch());
     }
-    std::cout << "> ";
+#else
+    if (kbhit()) {
+        handle_keypress(getch());
+    }
+#endif
 }
 
-void App::process_command(const std::string& cmd_name, const std::string& args) {
-    log_audit("Processing command: " + cmd_name + " with args: " + args);
-    if (cmd_name == "request") {
-        cmd_request(args);
-    } else if (cmd_name == "set-model") {
-        cmd_set_model(args);
-    } else if (cmd_name == "clear-cache") {
-        cmd_clear_cache(args);
-    } else {
-        std::cout << "Unknown command: " << cmd_name << "\n";
-        log_audit("Failed to process unknown command: " + cmd_name);
+void App::handle_keypress(char c) {
+    switch (c) {
+        case 'q': running = false; break;
+        case ' ': paused = !paused; break;
+        case '+': simulation_speed += 0.1; break;
+        case '-': simulation_speed -= 0.1; if (simulation_speed < 0) simulation_speed = 0; break;
+        case 't': current_theme_idx = (current_theme_idx + 1) % themes.size(); break;
     }
 }
 
-void App::cmd_request(const std::string& args) {
-    if (args.empty()) {
-        std::cout << "Error: request requires an endpoint name.\n";
-        return;
-    }
-    handle_request(args, JsonValue::makeObject());
+void App::update(double dt) {
+    engine.step(dt);
 }
 
-void App::cmd_set_model(const std::string& args) {
-    if (args.empty()) {
-        std::cout << "Error: set-model requires a path.\n";
-        return;
-    }
-    current_cfg.model = args;
-    state_manager->update_state(get_current_state());
-    std::cout << "Model updated to: " << args << "\n";
-}
-
-void App::cmd_clear_cache(const std::string&) {
-    cache->clear();
-    std::cout << "Cache cleared.\n";
-}
-
-void App::handle_request(const std::string& endpoint, const JsonValue& params) {
-    std::string cache_key = endpoint + "_" + params.serialize();
-    if (cache->has(cache_key)) {
-        std::cout << "Returning cached data for " << endpoint << "\n";
-        std::cout << cache->get(cache_key).serialize() << "\n";
-        return;
-    }
-
-    std::cout << "Fetching data from API for " << endpoint << "...\n";
-    JsonValue request = build_request(current_cfg);
-    JsonValue response = simulate_api_call(request);
+void App::render() {
+    vt.clear();
+    const auto& theme = themes[current_theme_idx];
     
-    cache->set(cache_key, response);
-    std::cout << "Response: " << response.serialize() << "\n";
+    vt.set_cell(0, 0, "Quanta Cogno v2 - Genomic Simulation", theme.primary_color);
+    vt.set_cell(0, 1, "Theme: " + theme.name + " | Speed: " + std::to_string(simulation_speed), theme.secondary_color);
+    vt.set_cell(0, 2, paused ? "[PAUSED]" : "[RUNNING]", visualization::FG_YELLOW);
+
+    auto genes_map = engine.get_genes();
+    std::vector<core::Gene> genes_vec;
+    int y = 4;
+    for (const auto& [id, gene] : genes_map) {
+        vt.set_cell(2, y, id + ": " + std::to_string(gene.expression_level), theme.primary_color);
+        genes_vec.push_back(gene);
+        y++;
+    }
+
+    visualization::GenomicViews::draw_heatmap(vt, 2, y + 1, genes_vec);
+
+    std::cout << "\033[H" << vt.render() << std::flush;
 }
+
+} // namespace qc::app

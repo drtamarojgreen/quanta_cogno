@@ -1,23 +1,25 @@
-#ifndef CACHE_MANAGER_H
-#define CACHE_MANAGER_H
+#ifndef CACHE_MANAGER_V2_H
+#define CACHE_MANAGER_V2_H
 
-#include "json_logic.h"
+#include "../io/json_parser.h"
 #include <string>
-#include <map>
+#include <filesystem>
+
+namespace qc::core {
 
 class CacheManager {
 public:
     CacheManager(const std::string& cache_dir = "./cache");
     
-    bool has(const std::string& key) const;
-    JsonValue get(const std::string& key) const;
-    void set(const std::string& key, const JsonValue& value);
+    void set(const std::string& key, const io::JsonValue& value);
+    std::optional<io::JsonValue> get(const std::string& key) const;
     void clear();
 
 private:
     std::string cache_dir;
-    std::string get_cache_path(const std::string& key) const;
-    void ensure_cache_dir();
+    std::string get_path(const std::string& key) const;
 };
 
-#endif // CACHE_MANAGER_H
+} // namespace qc::core
+
+#endif // CACHE_MANAGER_V2_H

@@ -1,0 +1,6 @@
+Situation: Default
+# Environment Facts
+Is cpp17_available = 1
+Is gxx_available = 1
+Is windows_os = 1
+Is project_root_discovered = 0

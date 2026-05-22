@@ -1,11 +1,16 @@
-#include "testing_framework.h"
-#include "json_logic.h"
-#include "api_logic.h"
-#include "api_handler.h"
-#include "flexible_json_logic.h"
+#include "utils/testing_framework.h"
+#include "core/json_logic.h"
+#include "api/api_logic.h"
+#include "api/api_handler.h"
+#include "core/flexible_json_logic.h"
+#include "core/cache_manager.h"
+#include "core/state_manager.h"
 #include <fstream>
 #include <cstdio> // For remove()
 #include <cstdlib> // For setenv
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 // Helper for comparing JsonValue, since it doesn't have operator==
 bool are_equal(const JsonValue& a, const JsonValue& b) {
@@ -20,6 +25,56 @@ bool are_equal(const JsonValue& a, const JsonValue& b) {
         case JsonValue::ARRAY: return a.array_value.size() == b.array_value.size();
         default: return false;
     }
+}
+
+TEST_CASE(CacheManager, CanSetAndGetCache) {
+    CacheManager cache("./test_cache");
+    JsonValue val = JsonValue::makeString("cached_data");
+    cache.set("test_key", val);
+    
+    ASSERT_TRUE(cache.has("test_key"));
+    JsonValue retrieved = cache.get("test_key");
+    ASSERT_EQUAL(retrieved.string_value, "cached_data");
+    
+    cache.clear();
+    ASSERT_FALSE(cache.has("test_key"));
+    fs::remove_all("./test_cache");
+}
+
+TEST_CASE(StateManager, CanSaveAndLoadState) {
+    StateManager sm("test_state.json");
+    JsonValue state = JsonValue::makeObject();
+    state.object_value["status"] = JsonValue::makeString("ok");
+    
+    sm.update_state(state);
+    JsonValue loaded = sm.load_state();
+    
+    ASSERT_EQUAL(loaded.object_value["status"].string_value, "ok");
+    fs::remove("test_state.json");
+}
+
+TEST_CASE(App, CanHandleRequestWithCaching) {
+    // This is a behavioral test for the App's request handling
+    // We'll simulate the App's cache behavior
+    CacheManager cache("./test_app_cache");
+    cache.clear();
+    
+    std::string endpoint = "getGene";
+    JsonValue params = JsonValue::makeObject();
+    std::string cache_key = endpoint + "_" + params.serialize();
+    
+    JsonValue mock_response = JsonValue::makeObject();
+    mock_response.object_value["gene"] = JsonValue::makeString("COMT");
+    
+    ASSERT_FALSE(cache.has(cache_key));
+    cache.set(cache_key, mock_response);
+    ASSERT_TRUE(cache.has(cache_key));
+    
+    JsonValue retrieved = cache.get(cache_key);
+    ASSERT_EQUAL(retrieved.object_value["gene"].string_value, "COMT");
+    
+    cache.clear();
+    fs::remove_all("./test_app_cache");
 }
 
 TEST_CASE(JsonLogic, CanCreateAndCheckTypes) {

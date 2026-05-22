@@ -1,7 +1,7 @@
 #ifndef API_HANDLER_H
 #define API_HANDLER_H
 
-#include "json_logic.h"
+#include "../core/json_logic.h"
 #include <string>
 
 // Process API requests with validation for mandatory search parameters

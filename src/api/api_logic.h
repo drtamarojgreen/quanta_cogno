@@ -1,7 +1,7 @@
 #ifndef API_LOGIC_H
 #define API_LOGIC_H
 #include <string>
-#include "json_logic.h"
+#include "../core/json_logic.h"
 
 // Configuration for the API call
 struct ApiConfig {

@@ -1,5 +1,5 @@
-#include "../flexible_json_logic.h"
-#include "../json_logic.h"
+#include "../core/flexible_json_logic.h"
+#include "../core/json_logic.h"
 #include <iostream>
 #include <fstream>
 
